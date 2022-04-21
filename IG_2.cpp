@@ -5,15 +5,98 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <glm/vec3.hpp>
-
+#include <glm/mat4x4.hpp>
 #include <string>
 #include <fstream>
 
 GLuint VBO;
+GLint gScalingLocation;
 
+
+static void ScalingExample()
+{
+    static float Scale = 1.0f;
+    static float Delta = 0.001f;
+
+    Scale += Delta;
+    if ((Scale >= 1.5f) || (Scale <= 0.5)) {
+        Delta *= -1.0f;
+    }
+
+    glm::mat4 Scaling(Scale, 0.0f, 0.0f, 0.0f,
+        0.0f, Scale, 0.0f, 0.0f,
+        0.0f, 0.0f, Scale, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f);
+
+    glUniformMatrix4fv(gScalingLocation, 1, GL_TRUE, &Scaling[0][0]);
+}
+
+
+static void CombiningTransformationsExample1()
+{
+    static float Scale = 1.5f;
+
+    glm::mat4 Scaling(Scale, 0.0f, 0.0f, 0.0f,
+        0.0f, Scale, 0.0f, 0.0f,
+        0.0f, 0.0f, Scale, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f);
+
+    static float Loc = 0.0f;
+    static float Delta = 0.01f;
+
+    Loc += Delta;
+    if ((Loc >= 0.5f) || (Loc <= -0.5f)) {
+        Delta *= -1.0f;
+    }
+
+    glm::mat4 Translation(1.0f, 0.0f, 0.0f, Loc,
+        0.0f, 1.0f, 0.0f, 0.0,
+        0.0f, 0.0f, 1.0f, 0.0,
+        0.0f, 0.0f, 0.0f, 1.0f);
+
+    //Matrix4f FinalTransform = Translation * Scaling;
+    glm::mat4 FinalTransform = Scaling * Translation;
+
+    glUniformMatrix4fv(gScalingLocation, 1, GL_TRUE, &FinalTransform[0][0]);
+}
+
+
+static void CombiningTransformationsExample2()
+{
+    static float Scale = 0.25f;
+
+    glm::mat4 Scaling(Scale, 0.0f, 0.0f, 0.0f,
+        0.0f, Scale, 0.0f, 0.0f,
+        0.0f, 0.0f, Scale, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f);
+
+    static float AngleInRadians = 0.0f;
+    static float Delta = 0.01f;
+
+    AngleInRadians += Delta;
+
+    glm::mat4 Rotation(cosf(AngleInRadians), -sinf(AngleInRadians), 0.0f, 0.0f,
+        sinf(AngleInRadians), cosf(AngleInRadians), 0.0f, 0.0f,
+        0.0, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f);
+
+    static float Loc = 0.5f;
+
+    glm::mat4 Translation(1.0f, 0.0f, 0.0f, Loc,
+        0.0f, 1.0f, 0.0f, 0.0,
+        0.0f, 0.0f, 1.0f, 0.0,
+        0.0f, 0.0f, 0.0f, 1.0f);
+
+    //Matrix4f FinalTransform = Translation * Rotation * Scaling;
+    glm::mat4 FinalTransform = Rotation * Translation * Scaling;
+
+    glUniformMatrix4fv(gScalingLocation, 1, GL_TRUE, &FinalTransform[0][0]);
+}
 
 void RenderSceneCB() {
     glClear(GL_COLOR_BUFFER_BIT);
+
+    ScalingExample();
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
@@ -24,6 +107,8 @@ void RenderSceneCB() {
     glDrawArrays(GL_TRIANGLES, 0, 3);
     
     glDisableVertexAttribArray(0);
+
+    glutPostRedisplay();
 
     glutSwapBuffers();
 }
@@ -43,7 +128,7 @@ void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
     GLuint ShaderObj = glCreateShader(ShaderType);
     if (ShaderObj == 0) {
         std::cout << "Error creating shader type" << ShaderType;
-        exit(0);
+        exit(1);
     }
 
     const GLchar* p[1];
@@ -75,7 +160,6 @@ void Shader_in_file(const char* name, std::string& str) {
     std::ifstream file;
     file.open(name);
     if (!(file.is_open())) {
-        std::cout << "PIDOR";
         exit(10);
     }
     std::string parse;
@@ -114,6 +198,12 @@ void CompileShader() {
         exit(12);
     }
 
+    gScalingLocation = glGetUniformLocation(ShaderProgram, "gScaling");
+    if (gScalingLocation == -1) {
+        printf("Error getting uniform location of 'gScaling'\n");
+        exit(1);
+    }
+
     glValidateProgram(ShaderProgram);
     glGetProgramiv(ShaderProgram, GL_VALIDATE_STATUS, &Success);
     if (!Success) {
@@ -132,7 +222,7 @@ void Window(int &argc, char** argv) {
     int width = 800;
     int height = 600;
     glutInitWindowSize(width, height);
-    glutCreateWindow("Tutorial 4");
+    glutCreateWindow("Tutorial 8");
 
     //glutInitWindowPosition(x, y);
 }
