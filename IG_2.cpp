@@ -5,15 +5,25 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <glm/vec3.hpp>
-
 #include <string>
 #include <fstream>
 
 GLuint VBO;
+GLint gScaleLocation;
 
 
 void RenderSceneCB() {
     glClear(GL_COLOR_BUFFER_BIT);
+
+    static float Scale = 0.0f;
+    static float Delta = 0.001f;
+
+    Scale += Delta;
+    if ((Scale >= 1.0f) || (Scale <= -1.0f)) {
+        Delta *= -1.0f;
+    }
+
+    glUniform1f(gScaleLocation, Scale);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
@@ -24,6 +34,8 @@ void RenderSceneCB() {
     glDrawArrays(GL_TRIANGLES, 0, 3);
     
     glDisableVertexAttribArray(0);
+
+    glutPostRedisplay();
 
     glutSwapBuffers();
 }
@@ -43,7 +55,7 @@ void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
     GLuint ShaderObj = glCreateShader(ShaderType);
     if (ShaderObj == 0) {
         std::cout << "Error creating shader type" << ShaderType;
-        exit(0);
+        exit(1);
     }
 
     const GLchar* p[1];
@@ -114,6 +126,12 @@ void CompileShader() {
         exit(12);
     }
 
+    gScaleLocation = glGetUniformLocation(ShaderProgram, "gScale");
+    if (gScaleLocation == -1) {
+        printf("Error getting uniform location of 'gScale'\n");
+        exit(1);
+    }
+
     glValidateProgram(ShaderProgram);
     glGetProgramiv(ShaderProgram, GL_VALIDATE_STATUS, &Success);
     if (!Success) {
@@ -132,7 +150,7 @@ void Window(int &argc, char** argv) {
     int width = 800;
     int height = 600;
     glutInitWindowSize(width, height);
-    glutCreateWindow("Tutorial 4");
+    glutCreateWindow("Tutorial 5");
 
     //glutInitWindowPosition(x, y);
 }
