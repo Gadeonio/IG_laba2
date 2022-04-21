@@ -10,27 +10,93 @@
 #include <fstream>
 
 GLuint VBO;
-GLint gRotationLocation;
+GLint gScalingLocation;
 
 
-void RenderSceneCB() {
-    glClear(GL_COLOR_BUFFER_BIT);
+static void ScalingExample()
+{
+    static float Scale = 1.0f;
+    static float Delta = 0.001f;
+
+    Scale += Delta;
+    if ((Scale >= 1.5f) || (Scale <= 0.5)) {
+        Delta *= -1.0f;
+    }
+
+    glm::mat4 Scaling(Scale, 0.0f, 0.0f, 0.0f,
+        0.0f, Scale, 0.0f, 0.0f,
+        0.0f, 0.0f, Scale, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f);
+
+    glUniformMatrix4fv(gScalingLocation, 1, GL_TRUE, &Scaling[0][0]);
+}
+
+
+static void CombiningTransformationsExample1()
+{
+    static float Scale = 1.5f;
+
+    glm::mat4 Scaling(Scale, 0.0f, 0.0f, 0.0f,
+        0.0f, Scale, 0.0f, 0.0f,
+        0.0f, 0.0f, Scale, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f);
+
+    static float Loc = 0.0f;
+    static float Delta = 0.01f;
+
+    Loc += Delta;
+    if ((Loc >= 0.5f) || (Loc <= -0.5f)) {
+        Delta *= -1.0f;
+    }
+
+    glm::mat4 Translation(1.0f, 0.0f, 0.0f, Loc,
+        0.0f, 1.0f, 0.0f, 0.0,
+        0.0f, 0.0f, 1.0f, 0.0,
+        0.0f, 0.0f, 0.0f, 1.0f);
+
+    //Matrix4f FinalTransform = Translation * Scaling;
+    glm::mat4 FinalTransform = Scaling * Translation;
+
+    glUniformMatrix4fv(gScalingLocation, 1, GL_TRUE, &FinalTransform[0][0]);
+}
+
+
+static void CombiningTransformationsExample2()
+{
+    static float Scale = 0.25f;
+
+    glm::mat4 Scaling(Scale, 0.0f, 0.0f, 0.0f,
+        0.0f, Scale, 0.0f, 0.0f,
+        0.0f, 0.0f, Scale, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f);
 
     static float AngleInRadians = 0.0f;
     static float Delta = 0.01f;
 
     AngleInRadians += Delta;
-    if ((AngleInRadians >= 1.5708f) || (AngleInRadians <= -1.5708f)) {
-        Delta *= -1.0f;
-    }
 
     glm::mat4 Rotation(cosf(AngleInRadians), -sinf(AngleInRadians), 0.0f, 0.0f,
         sinf(AngleInRadians), cosf(AngleInRadians), 0.0f, 0.0f,
         0.0, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f);
 
-    glUniformMatrix4fv(gRotationLocation, 1, GL_TRUE, &Rotation[0][0]);
+    static float Loc = 0.5f;
 
+    glm::mat4 Translation(1.0f, 0.0f, 0.0f, Loc,
+        0.0f, 1.0f, 0.0f, 0.0,
+        0.0f, 0.0f, 1.0f, 0.0,
+        0.0f, 0.0f, 0.0f, 1.0f);
+
+    //Matrix4f FinalTransform = Translation * Rotation * Scaling;
+    glm::mat4 FinalTransform = Rotation * Translation * Scaling;
+
+    glUniformMatrix4fv(gScalingLocation, 1, GL_TRUE, &FinalTransform[0][0]);
+}
+
+void RenderSceneCB() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    ScalingExample();
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
@@ -132,9 +198,9 @@ void CompileShader() {
         exit(12);
     }
 
-    gRotationLocation = glGetUniformLocation(ShaderProgram, "gRotation");
-    if (gRotationLocation == -1) {
-        printf("Error getting uniform location of 'gRotation'\n");
+    gScalingLocation = glGetUniformLocation(ShaderProgram, "gScaling");
+    if (gScalingLocation == -1) {
+        printf("Error getting uniform location of 'gScaling'\n");
         exit(1);
     }
 
@@ -156,7 +222,7 @@ void Window(int &argc, char** argv) {
     int width = 800;
     int height = 600;
     glutInitWindowSize(width, height);
-    glutCreateWindow("Tutorial 7");
+    glutCreateWindow("Tutorial 8");
 
     //glutInitWindowPosition(x, y);
 }
