@@ -5,15 +5,32 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <glm/vec3.hpp>
-
+#include <glm/mat4x4.hpp>
 #include <string>
 #include <fstream>
 
 GLuint VBO;
+GLint gRotationLocation;
 
 
 void RenderSceneCB() {
     glClear(GL_COLOR_BUFFER_BIT);
+
+    static float AngleInRadians = 0.0f;
+    static float Delta = 0.01f;
+
+    AngleInRadians += Delta;
+    if ((AngleInRadians >= 1.5708f) || (AngleInRadians <= -1.5708f)) {
+        Delta *= -1.0f;
+    }
+
+    glm::mat4 Rotation(cosf(AngleInRadians), -sinf(AngleInRadians), 0.0f, 0.0f,
+        sinf(AngleInRadians), cosf(AngleInRadians), 0.0f, 0.0f,
+        0.0, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f);
+
+    glUniformMatrix4fv(gRotationLocation, 1, GL_TRUE, &Rotation[0][0]);
+
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
@@ -24,6 +41,8 @@ void RenderSceneCB() {
     glDrawArrays(GL_TRIANGLES, 0, 3);
     
     glDisableVertexAttribArray(0);
+
+    glutPostRedisplay();
 
     glutSwapBuffers();
 }
@@ -43,7 +62,7 @@ void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
     GLuint ShaderObj = glCreateShader(ShaderType);
     if (ShaderObj == 0) {
         std::cout << "Error creating shader type" << ShaderType;
-        exit(0);
+        exit(1);
     }
 
     const GLchar* p[1];
@@ -75,7 +94,6 @@ void Shader_in_file(const char* name, std::string& str) {
     std::ifstream file;
     file.open(name);
     if (!(file.is_open())) {
-        std::cout << "PIDOR";
         exit(10);
     }
     std::string parse;
@@ -114,6 +132,12 @@ void CompileShader() {
         exit(12);
     }
 
+    gRotationLocation = glGetUniformLocation(ShaderProgram, "gRotation");
+    if (gRotationLocation == -1) {
+        printf("Error getting uniform location of 'gRotation'\n");
+        exit(1);
+    }
+
     glValidateProgram(ShaderProgram);
     glGetProgramiv(ShaderProgram, GL_VALIDATE_STATUS, &Success);
     if (!Success) {
@@ -132,7 +156,7 @@ void Window(int &argc, char** argv) {
     int width = 800;
     int height = 600;
     glutInitWindowSize(width, height);
-    glutCreateWindow("Tutorial 4");
+    glutCreateWindow("Tutorial 7");
 
     //glutInitWindowPosition(x, y);
 }
