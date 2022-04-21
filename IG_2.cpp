@@ -10,26 +10,27 @@
 #include <fstream>
 
 GLuint VBO;
-GLint gTranslationLocation;
+GLint gRotationLocation;
 
 
 void RenderSceneCB() {
     glClear(GL_COLOR_BUFFER_BIT);
 
-    static float Scale = 0.0f;
-    static float Delta = 0.005f;
+    static float AngleInRadians = 0.0f;
+    static float Delta = 0.01f;
 
-    Scale += Delta;
-    if ((Scale >= 1.0f) || (Scale <= -1.0f)) {
+    AngleInRadians += Delta;
+    if ((AngleInRadians >= 1.5708f) || (AngleInRadians <= -1.5708f)) {
         Delta *= -1.0f;
     }
 
-    glm::mat4 Translation(1.0f, 0.0f, 0.0f, Scale * 2,
-        0.0f, 1.0f, 0.0f, Scale,
-        0.0f, 0.0f, 1.0f, 0.0,
+    glm::mat4 Rotation(cosf(AngleInRadians), -sinf(AngleInRadians), 0.0f, 0.0f,
+        sinf(AngleInRadians), cosf(AngleInRadians), 0.0f, 0.0f,
+        0.0, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f);
 
-    glUniformMatrix4fv(gTranslationLocation, 1, GL_TRUE, &Translation[0][0]);
+    glUniformMatrix4fv(gRotationLocation, 1, GL_TRUE, &Rotation[0][0]);
+
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
@@ -131,9 +132,9 @@ void CompileShader() {
         exit(12);
     }
 
-    gTranslationLocation = glGetUniformLocation(ShaderProgram, "gTranslation");
-    if (gTranslationLocation == -1) {
-        printf("Error getting uniform location of 'gTranslation'\n");
+    gRotationLocation = glGetUniformLocation(ShaderProgram, "gRotation");
+    if (gRotationLocation == -1) {
+        printf("Error getting uniform location of 'gRotation'\n");
         exit(1);
     }
 
@@ -155,7 +156,7 @@ void Window(int &argc, char** argv) {
     int width = 800;
     int height = 600;
     glutInitWindowSize(width, height);
-    glutCreateWindow("Tutorial 6");
+    glutCreateWindow("Tutorial 7");
 
     //glutInitWindowPosition(x, y);
 }
