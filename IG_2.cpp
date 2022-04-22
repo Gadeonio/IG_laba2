@@ -5,52 +5,84 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <glm/vec3.hpp>
-
+#include <glm/mat4x4.hpp>
 #include <string>
 #include <fstream>
+#include "pipeline.h"
 
 GLuint VBO;
+GLuint IBO;
+GLuint gWorldLocation;
 
 
 void RenderSceneCB() {
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    static float Scale = 0.0f;
+
+    Scale += 0.001f;
+
+    Pipeline p;
+    p.Scale(sinf(Scale * 0.1f), sinf(Scale * 0.1f), sinf(Scale * 0.1f));
+    p.WorldPos(sinf(Scale), 0.0f, 0.0f);
+    p.Rotate(sinf(Scale) * 90.0f, sinf(Scale) * 90.0f, sinf(Scale) * 90.0f);
+
+    glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)p.GetTrans());
 
     glEnableVertexAttribArray(0);
-
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    
+    glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+
     glDisableVertexAttribArray(0);
 
     glutSwapBuffers();
 }
 
-void CreateVertexBuffer() {
-    glm::vec3 Vertices[3];
+void InitializeGlutCallbacks()
+{
+    glutDisplayFunc(RenderSceneCB);
+    glutIdleFunc(RenderSceneCB);
+}
+
+void CreateVertexBuffer(){
+    glm::vec3 Vertices[4];
     Vertices[0] = glm::vec3(-1.0f, -1.0f, 0.0f);
-    Vertices[1] = glm::vec3(1.0f, -1.0f, 0.0f);
-    Vertices[2] = glm::vec3(0.0f, 1.0f, 0.0f);
+    Vertices[1] = glm::vec3(0.0f, -1.0f, 1.0f);
+    Vertices[2] = glm::vec3(1.0f, -1.0f, 0.0f);
+    Vertices[3] = glm::vec3(0.0f, 1.0f, 0.0f);
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
 }
 
+void CreateIndexBuffer()
+{
+    unsigned int Indices[] = { 0, 3, 1,
+                               1, 3, 2,
+                               2, 3, 0,
+                               0, 1, 2 };
+
+    glGenBuffers(1, &IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
+}
+
 void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType) {
     GLuint ShaderObj = glCreateShader(ShaderType);
     if (ShaderObj == 0) {
         std::cout << "Error creating shader type" << ShaderType;
-        exit(0);
+        exit(1);
     }
 
     const GLchar* p[1];
     p[0] = pShaderText;
 
     GLint Lengths[1];
-    Lengths[0] = (GLint)strlen(pShaderText);
+    Lengths[0] = strlen(pShaderText);
 
     glShaderSource(ShaderObj, 1, p, Lengths);
 
@@ -68,14 +100,13 @@ void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
     glAttachShader(ShaderProgram, ShaderObj);
 }
 
-const char* pVSFileName = "D:\\Учеба УГАТУ\\2 курс\\2 семестр\\ИГ\\IG_laba2\\IG_2\\shader.vs";
-const char* pFSFileName = "D:\\Учеба УГАТУ\\2 курс\\2 семестр\\ИГ\\IG_laba2\\IG_2\\shader.fs";
+const char* pVSFileName = "D:\\Учеба УГАТУ\\2 курс\\2 семестр\\ИГ\\IG_laba2\\IG_laba2\\shader.vs";
+const char* pFSFileName = "D:\\Учеба УГАТУ\\2 курс\\2 семестр\\ИГ\\IG_laba2\\IG_laba2\\shader.fs";
 
 void Shader_in_file(const char* name, std::string& str) {
     std::ifstream file;
     file.open(name);
     if (!(file.is_open())) {
-        std::cout << "PIDOR";
         exit(10);
     }
     std::string parse;
@@ -123,6 +154,9 @@ void CompileShader() {
     }
 
     glUseProgram(ShaderProgram);   
+
+    gWorldLocation = glGetUniformLocation(ShaderProgram, "gWorld");
+    assert(gWorldLocation != 0xFFFFFFFF);
 }
 
 
@@ -132,8 +166,8 @@ void Window(int &argc, char** argv) {
     int width = 800;
     int height = 600;
     glutInitWindowSize(width, height);
-    glutCreateWindow("Tutorial 4");
-
+    glutCreateWindow("Tutorial 11");
+    InitializeGlutCallbacks();
     //glutInitWindowPosition(x, y);
 }
 
@@ -155,9 +189,9 @@ int main(int argc, char** argv)
 
     CreateVertexBuffer();
 
-    CompileShader();
+    CreateIndexBuffer();
 
-    glutDisplayFunc(RenderSceneCB);
+    CompileShader();
 
     glutMainLoop();
 
