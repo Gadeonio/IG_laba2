@@ -1,8 +1,10 @@
-#version 330 core
+#version 330
 
-out vec4 FlagColor;
+in vec4 Color;
+
+out vec4 FragColor;
 
 void main()
 {
-    FlagColor = vec4(1.0, 0.0, 0.0, 0.0);
+    FragColor = Color;
 }
