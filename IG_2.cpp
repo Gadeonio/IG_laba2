@@ -75,7 +75,6 @@ void Shader_in_file(const char* name, std::string& str) {
     std::ifstream file;
     file.open(name);
     if (!(file.is_open())) {
-        std::cout << "PIDOR";
         exit(10);
     }
     std::string parse;
