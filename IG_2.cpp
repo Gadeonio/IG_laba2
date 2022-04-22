@@ -20,12 +20,12 @@ void RenderSceneCB() {
 
     static float Scale = 0.0f;
 
-    Scale += 0.001f;
+    Scale += 0.1f;
 
     Pipeline p;
-    p.Scale(sinf(Scale * 0.1f), sinf(Scale * 0.1f), sinf(Scale * 0.1f));
-    p.WorldPos(sinf(Scale), 0.0f, 0.0f);
-    p.Rotate(sinf(Scale) * 90.0f, sinf(Scale) * 90.0f, sinf(Scale) * 90.0f);
+    p.Rotate(0.0f, Scale, 0.0f);
+    p.WorldPos(0.0f, 0.0f, 5.0f);
+    p.SetPerspectiveProj(30.0f, 600, 800, 1.0f, 100.0f);
 
     glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)p.GetTrans());
 
@@ -49,9 +49,9 @@ void InitializeGlutCallbacks()
 
 void CreateVertexBuffer(){
     glm::vec3 Vertices[4];
-    Vertices[0] = glm::vec3(-1.0f, -1.0f, 0.0f);
-    Vertices[1] = glm::vec3(0.0f, -1.0f, 1.0f);
-    Vertices[2] = glm::vec3(1.0f, -1.0f, 0.0f);
+    Vertices[0] = glm::vec3(-1.0f, -1.0f, 0.5773f);
+    Vertices[1] = glm::vec3(0.0f, -1.0f, -1.15475f);
+    Vertices[2] = glm::vec3(1.0f, -1.0f, 0.5773f);
     Vertices[3] = glm::vec3(0.0f, 1.0f, 0.0f);
 
     glGenBuffers(1, &VBO);
@@ -82,7 +82,7 @@ void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
     p[0] = pShaderText;
 
     GLint Lengths[1];
-    Lengths[0] = strlen(pShaderText);
+    Lengths[0] = (GLint)strlen(pShaderText);
 
     glShaderSource(ShaderObj, 1, p, Lengths);
 
