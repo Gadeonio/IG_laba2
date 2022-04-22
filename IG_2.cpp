@@ -8,120 +8,67 @@
 #include <glm/mat4x4.hpp>
 #include <string>
 #include <fstream>
+#include "pipeline.h"
 
 GLuint VBO;
-GLint gScalingLocation;
+GLuint IBO;
+GLuint gWorldLocation;
 
-
-static void ScalingExample()
-{
-    static float Scale = 1.0f;
-    static float Delta = 0.001f;
-
-    Scale += Delta;
-    if ((Scale >= 1.5f) || (Scale <= 0.5)) {
-        Delta *= -1.0f;
-    }
-
-    glm::mat4 Scaling(Scale, 0.0f, 0.0f, 0.0f,
-        0.0f, Scale, 0.0f, 0.0f,
-        0.0f, 0.0f, Scale, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f);
-
-    glUniformMatrix4fv(gScalingLocation, 1, GL_TRUE, &Scaling[0][0]);
-}
-
-
-static void CombiningTransformationsExample1()
-{
-    static float Scale = 1.5f;
-
-    glm::mat4 Scaling(Scale, 0.0f, 0.0f, 0.0f,
-        0.0f, Scale, 0.0f, 0.0f,
-        0.0f, 0.0f, Scale, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f);
-
-    static float Loc = 0.0f;
-    static float Delta = 0.01f;
-
-    Loc += Delta;
-    if ((Loc >= 0.5f) || (Loc <= -0.5f)) {
-        Delta *= -1.0f;
-    }
-
-    glm::mat4 Translation(1.0f, 0.0f, 0.0f, Loc,
-        0.0f, 1.0f, 0.0f, 0.0,
-        0.0f, 0.0f, 1.0f, 0.0,
-        0.0f, 0.0f, 0.0f, 1.0f);
-
-    //Matrix4f FinalTransform = Translation * Scaling;
-    glm::mat4 FinalTransform = Scaling * Translation;
-
-    glUniformMatrix4fv(gScalingLocation, 1, GL_TRUE, &FinalTransform[0][0]);
-}
-
-
-static void CombiningTransformationsExample2()
-{
-    static float Scale = 0.25f;
-
-    glm::mat4 Scaling(Scale, 0.0f, 0.0f, 0.0f,
-        0.0f, Scale, 0.0f, 0.0f,
-        0.0f, 0.0f, Scale, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f);
-
-    static float AngleInRadians = 0.0f;
-    static float Delta = 0.01f;
-
-    AngleInRadians += Delta;
-
-    glm::mat4 Rotation(cosf(AngleInRadians), -sinf(AngleInRadians), 0.0f, 0.0f,
-        sinf(AngleInRadians), cosf(AngleInRadians), 0.0f, 0.0f,
-        0.0, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f);
-
-    static float Loc = 0.5f;
-
-    glm::mat4 Translation(1.0f, 0.0f, 0.0f, Loc,
-        0.0f, 1.0f, 0.0f, 0.0,
-        0.0f, 0.0f, 1.0f, 0.0,
-        0.0f, 0.0f, 0.0f, 1.0f);
-
-    //Matrix4f FinalTransform = Translation * Rotation * Scaling;
-    glm::mat4 FinalTransform = Rotation * Translation * Scaling;
-
-    glUniformMatrix4fv(gScalingLocation, 1, GL_TRUE, &FinalTransform[0][0]);
-}
 
 void RenderSceneCB() {
     glClear(GL_COLOR_BUFFER_BIT);
 
-    ScalingExample();
+    static float Scale = 0.0f;
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    Scale += 0.001f;
+
+    Pipeline p;
+    p.Scale(sinf(Scale * 0.1f), sinf(Scale * 0.1f), sinf(Scale * 0.1f));
+    p.WorldPos(sinf(Scale), 0.0f, 0.0f);
+    p.Rotate(sinf(Scale) * 90.0f, sinf(Scale) * 90.0f, sinf(Scale) * 90.0f);
+
+    glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)p.GetTrans());
 
     glEnableVertexAttribArray(0);
-
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    
+    glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+
     glDisableVertexAttribArray(0);
-
-    glutPostRedisplay();
 
     glutSwapBuffers();
 }
 
-void CreateVertexBuffer() {
-    glm::vec3 Vertices[3];
+void InitializeGlutCallbacks()
+{
+    glutDisplayFunc(RenderSceneCB);
+    glutIdleFunc(RenderSceneCB);
+}
+
+void CreateVertexBuffer(){
+    glm::vec3 Vertices[4];
     Vertices[0] = glm::vec3(-1.0f, -1.0f, 0.0f);
-    Vertices[1] = glm::vec3(1.0f, -1.0f, 0.0f);
-    Vertices[2] = glm::vec3(0.0f, 1.0f, 0.0f);
+    Vertices[1] = glm::vec3(0.0f, -1.0f, 1.0f);
+    Vertices[2] = glm::vec3(1.0f, -1.0f, 0.0f);
+    Vertices[3] = glm::vec3(0.0f, 1.0f, 0.0f);
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+}
+
+void CreateIndexBuffer()
+{
+    unsigned int Indices[] = { 0, 3, 1,
+                               1, 3, 2,
+                               2, 3, 0,
+                               0, 1, 2 };
+
+    glGenBuffers(1, &IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
 }
 
 void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType) {
@@ -135,7 +82,7 @@ void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
     p[0] = pShaderText;
 
     GLint Lengths[1];
-    Lengths[0] = (GLint)strlen(pShaderText);
+    Lengths[0] = strlen(pShaderText);
 
     glShaderSource(ShaderObj, 1, p, Lengths);
 
@@ -153,8 +100,8 @@ void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
     glAttachShader(ShaderProgram, ShaderObj);
 }
 
-const char* pVSFileName = "D:\\Учеба УГАТУ\\2 курс\\2 семестр\\ИГ\\IG_laba2\\IG_2\\shader.vs";
-const char* pFSFileName = "D:\\Учеба УГАТУ\\2 курс\\2 семестр\\ИГ\\IG_laba2\\IG_2\\shader.fs";
+const char* pVSFileName = "D:\\Учеба УГАТУ\\2 курс\\2 семестр\\ИГ\\IG_laba2\\IG_laba2\\shader.vs";
+const char* pFSFileName = "D:\\Учеба УГАТУ\\2 курс\\2 семестр\\ИГ\\IG_laba2\\IG_laba2\\shader.fs";
 
 void Shader_in_file(const char* name, std::string& str) {
     std::ifstream file;
@@ -198,12 +145,6 @@ void CompileShader() {
         exit(12);
     }
 
-    gScalingLocation = glGetUniformLocation(ShaderProgram, "gScaling");
-    if (gScalingLocation == -1) {
-        printf("Error getting uniform location of 'gScaling'\n");
-        exit(1);
-    }
-
     glValidateProgram(ShaderProgram);
     glGetProgramiv(ShaderProgram, GL_VALIDATE_STATUS, &Success);
     if (!Success) {
@@ -213,6 +154,9 @@ void CompileShader() {
     }
 
     glUseProgram(ShaderProgram);   
+
+    gWorldLocation = glGetUniformLocation(ShaderProgram, "gWorld");
+    assert(gWorldLocation != 0xFFFFFFFF);
 }
 
 
@@ -222,8 +166,8 @@ void Window(int &argc, char** argv) {
     int width = 800;
     int height = 600;
     glutInitWindowSize(width, height);
-    glutCreateWindow("Tutorial 8");
-
+    glutCreateWindow("Tutorial 11");
+    InitializeGlutCallbacks();
     //glutInitWindowPosition(x, y);
 }
 
@@ -245,9 +189,9 @@ int main(int argc, char** argv)
 
     CreateVertexBuffer();
 
-    CompileShader();
+    CreateIndexBuffer();
 
-    glutDisplayFunc(RenderSceneCB);
+    CompileShader();
 
     glutMainLoop();
 
